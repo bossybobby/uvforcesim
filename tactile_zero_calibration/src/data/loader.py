@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import re
+from typing import Iterable
 
 import pandas as pd
 
@@ -85,3 +86,13 @@ def group_by_xy(records_df: pd.DataFrame) -> dict[tuple[float, float], pd.DataFr
     for (xr, yr), group in records_df.groupby(["xr", "yr"], sort=True):
         grouped[(float(xr), float(yr))] = group.sort_values("zr", ascending=False).reset_index(drop=True)
     return grouped
+
+
+def validate_unique_nominal_zero(groups: dict[tuple[float, float], pd.DataFrame]) -> list[tuple[tuple[float, float], int]]:
+    """Return groups where z0_abs_xy is not unique (should usually be unique per XY)."""
+    violations: list[tuple[tuple[float, float], int]] = []
+    for xy_key, group in groups.items():
+        unique_count = int(group["z0_abs_xy"].nunique())
+        if unique_count != 1:
+            violations.append((xy_key, unique_count))
+    return violations

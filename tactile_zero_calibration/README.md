@@ -8,12 +8,6 @@
 - 基于稠密光流（Farnebäck）的 UV 位移特征提取
 - `main.py` 一键运行入口
 
-## 环境准备
-
-```bash
-pip install -r requirements.txt
-```
-
 ## 使用方式
 
 ```bash
@@ -26,7 +20,7 @@ python main.py --data_dir ./data --output_dir ./results --downsample 0.5 --verbo
 - `results/group_summary.csv`：每组图像数量、Z 范围、|Fz| 范围
 - `results/nominal_zero_hist.png`：名义零点 `z0_abs_xy` 分布
 - `results/uv_features.csv`：相邻帧计算得到的 UV 特征
-- `results/phase1_report.txt`：运行统计与执行日志
+- `results/phase1_report.txt`：运行统计和一致性检查（同组名义零点唯一性）
 
 ## 下一步（Phase 2）
 

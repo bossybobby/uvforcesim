@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import pandas as pd
 
 
@@ -37,13 +38,7 @@ def build_group_summary(records_df: pd.DataFrame) -> pd.DataFrame:
     return summary
 
 
-def plot_nominal_zero_hist(records_df: pd.DataFrame, output_path: str | Path) -> bool:
-    """Plot histogram when matplotlib is available; return True if written."""
-    try:
-        import matplotlib.pyplot as plt
-    except ModuleNotFoundError:
-        return False
-
+def plot_nominal_zero_hist(records_df: pd.DataFrame, output_path: str | Path) -> None:
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -57,4 +52,3 @@ def plot_nominal_zero_hist(records_df: pd.DataFrame, output_path: str | Path) ->
     fig.tight_layout()
     fig.savefig(output_path, dpi=200)
     plt.close(fig)
-    return True

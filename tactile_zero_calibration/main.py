@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-import sys
 
-if __package__ is None or __package__ == "":
-    sys.path.append(str(Path(__file__).resolve().parent))
+from src.data.exploration import build_group_summary, plot_nominal_zero_hist
+from src.data.loader import group_by_xy, load_records, validate_unique_nominal_zero
+from src.uv_analysis.pipeline import compute_all_groups_uv_features
 
 
 def parse_args() -> argparse.Namespace:
@@ -25,35 +25,22 @@ def parse_args() -> argparse.Namespace:
 
 
 def run_phase1(data_dir: Path, output_dir: Path, downsample: float, verbose: bool = False) -> None:
-    try:
-        from src.data.exploration import build_group_summary, plot_nominal_zero_hist
-        from src.data.loader import group_by_xy, load_records
-        from src.uv_analysis.pipeline import compute_all_groups_uv_features
-    except ModuleNotFoundError as exc:
-        missing = exc.name or "unknown dependency"
-        raise SystemExit(
-            f"Missing dependency: {missing}. Please run: pip install -r tactile_zero_calibration/requirements.txt"
-        ) from exc
-
     output_dir.mkdir(parents=True, exist_ok=True)
 
     records_df = load_records(data_dir)
+    records_out = output_dir / "records.parquet"
     if not records_df.empty:
-        records_parquet_out = output_dir / "records.parquet"
-        records_csv_out = output_dir / "records.csv"
-        try:
-            records_df.to_parquet(records_parquet_out, index=False)
-        except Exception:
-            records_df.to_csv(records_csv_out, index=False)
+        records_df.to_parquet(records_out, index=False)
 
     grouped = group_by_xy(records_df)
+    violations = validate_unique_nominal_zero(grouped)
 
     summary_df = build_group_summary(records_df)
     summary_path = output_dir / "group_summary.csv"
     summary_df.to_csv(summary_path, index=False)
 
     hist_path = output_dir / "nominal_zero_hist.png"
-    histogram_saved = plot_nominal_zero_hist(records_df, hist_path)
+    plot_nominal_zero_hist(records_df, hist_path)
 
     uv_features_df = compute_all_groups_uv_features(grouped, downsample=downsample)
     uv_features_path = output_dir / "uv_features.csv"
@@ -64,15 +51,16 @@ def run_phase1(data_dir: Path, output_dir: Path, downsample: float, verbose: boo
         f.write("Phase 1 completed.\n")
         f.write(f"Total images: {len(records_df)}\n")
         f.write(f"Total XY groups: {len(grouped)}\n")
-        f.write(f"Nominal zero histogram generated: {histogram_saved}\n")
+        f.write(f"Groups with non-unique z0_abs_xy: {len(violations)}\n")
+        if violations:
+            f.write("Violations (xy, unique_count):\n")
+            for item in violations:
+                f.write(f"  - {item}\n")
 
     if verbose:
         print(f"Loaded {len(records_df)} images from {data_dir}")
         print(f"Generated summary: {summary_path}")
-        if histogram_saved:
-            print(f"Generated histogram: {hist_path}")
-        else:
-            print("Skipped histogram (matplotlib not installed)")
+        print(f"Generated histogram: {hist_path}")
         print(f"Generated UV features: {uv_features_path}")
         print(f"Generated report: {report_path}")
 
